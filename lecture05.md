@@ -177,7 +177,7 @@ $ systemctl status nginx
 
 ```
 upstream unicorn_server {
-	# Unicornと連携させるための設定。
+  # Unicornと連携させるための設定。
   # config/unicorn.rb内のunicorn.sockを指定する
   server unix:/var/www/raisetech-live8-sample-app/unicorn.sock;
 }
@@ -222,7 +222,7 @@ server {
 
 
 #### 4-2. Unicornの設定
-- サンプルアプリにはGemfileにunicoenについてあらかじめ記載があるため、既に先の`$ bundle install`でインストール済み。
+- サンプルアプリにはGemfileにunicornについてあらかじめ記載があるため、既に先の`$ bundle install`でインストール済み。
 - サンプルアプリにはconfig/unicorn.rbもあらかじめ作成済みなため、作成不要。
 - config/unicorn.rb内のディレクトリを自分の環境に合わせて修正する。`$ vim config/unicorn.rb`
 
@@ -363,12 +363,13 @@ pid    '/var/www/raisetech-live8-sample-app/unicorn.pid'
 
 
 #### 6-2-2. `/config/storage.yml`に合わせて、`credentials.yml.enc`にIAMユーザー作成時にダウンロードした認証情報を記載する。
-`$ EDITOR="vi" bin/rails credentials:edit`
+- credentials.yml.encを編集し`$ EDITOR="vi" bin/rails credentials:edit`、下記を追記する。
+
 ```
 aws:
-  access_key_id: 〇〇〇〇〇
-  secret_access_key: 〇〇〇〇〇
-  active_storage_bucket_name: 〇〇〇〇〇
+  access_key_id: 〇〇〇〇〇＜S3バケットのAccess key ID＞
+  secret_access_key: 〇〇〇〇〇＜S3バケットのSecret access key＞
+  active_storage_bucket_name: 〇〇〇〇〇＜S3のバケット名＞
 ```
 
 #### 6-2-3. config/environments/development.rbを編集する
@@ -545,8 +546,8 @@ rubyをアンインストールして、rubyとrailsのインストールと`bun
 #### 新規作成時、「Error storing "（ファイル名）". Status: 0」と言われて画像を保存できない。
 
 - CORSを設定する（[参考１](https://aws.amazon.com/jp/premiumsupport/knowledge-center/s3-configure-cors/)、[２](https://ja.stackoverflow.com/questions/88072/s3%E3%81%AB%E7%94%BB%E5%83%8F%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB%E3%82%92%E3%82%A2%E3%83%83%E3%83%97%E3%83%AD%E3%83%BC%E3%83%89%E3%81%A7%E3%81%8D%E3%81%AA%E3%81%84)）→ 変化なし
-- chrome開発者ツールだとプリフライトリクエストでブロックされてる。
-- curlででCORSリクエストの再現してバケットにアクセスする（[参考](https://qiita.com/Ping/items/29f0ed49b769a9dd3d3e)）と、レスポンスヘッダーに「Access-Control-Allow-Origin」が存在しない。（S3バケットのCORSでは設定済み）
+- chrome開発者ツールで確認するとプリフライトリクエストでブロックされてる。
+- curlでCORSリクエストを再現してバケットにアクセスする（[参考](https://qiita.com/Ping/items/29f0ed49b769a9dd3d3e)）と、レスポンスヘッダーに「Access-Control-Allow-Origin」が存在しない。（S3バケットのCORSでは設定済み）
 
 ```
 $ curl -v -X OPTIONS -H 'Origin:http://〇〇〇〇〇.ap-northeast-1.elb.amazonaws.com/' -H 'Access-Control-Request-Method: PUT' -H 'Access-Control-Request-Headers: content-type' https://〇〇〇〇〇.s3.ap-northeast-1.amazonaws.com/
@@ -575,7 +576,7 @@ $ curl -v -X OPTIONS -H 'Origin:http://〇〇〇〇〇.ap-northeast-1.elb.amazon
 - 無事、S3に画像がアップロードできるように！！
 
 - VPCエンドポイントで回避する方法もあったらしいけど、これはプライベートサブネットからS3にアクセスするときの手段([参考](https://dev.classmethod.jp/articles/vpc-endpoint-gateway-type/)）
-- nginx でリバースプロキシで対処する方法もあったらしい。([参考１](https://qiita.com/ezaki/items/cefb95f87c4397d1d1b1)、[２](https://scble.net/2021/02/17/nginx-aws-s3-reverse-proxy/)、[３](https://dev.classmethod.jp/articles/private-content-hosting-with-nginx/)）
+- nginx でリバースプロキシで対処する方法もあるらしい。([参考１](https://qiita.com/ezaki/items/cefb95f87c4397d1d1b1)、[２](https://scble.net/2021/02/17/nginx-aws-s3-reverse-proxy/)、[３](https://dev.classmethod.jp/articles/private-content-hosting-with-nginx/)）
 
 </details>
 
