@@ -9,6 +9,11 @@ Parameters:
   RDSFamily:
     Type: String
     Default: MySQL8.0
+  
+  MySQLMasterUserPass:
+    Type: String
+    Default: password
+    NoEcho: true
 
 Resources:
 # ------------------------------------------------------------#
@@ -23,7 +28,7 @@ Resources:
       EngineVersion: 8.0.32
       MultiAZ: false
       MasterUsername: root
-      MasterUserPassword: password
+      MasterUserPassword: !Ref MySQLMasterUserPass
       DBInstanceClass: db.t2.micro
       StorageType: gp2
       AllocatedStorage: 20
@@ -31,7 +36,7 @@ Resources:
       PubliclyAccessible: false
       VPCSecurityGroups:
       - !Ref CFnRDSSecurityGroup
-      AvailabilityZone: ap-northeast-1a
+      AvailabilityZone: !Sub ${AWS::Region}a
       Port: 3306
       DBParameterGroupName: !Ref CFnRDSParameterGroup
       OptionGroupName: !Ref CFnRDSOptionGroup

@@ -48,7 +48,7 @@ Resources:
   CFnPublicSubnetA:
     Type: AWS::EC2::Subnet
     Properties:
-      AvailabilityZone: ap-northeast-1a
+      AvailabilityZone: !Sub ${AWS::Region}a
       CidrBlock: !Ref PublicSubnetACIDR
       VpcId: !Ref CFnVPC
       MapPublicIpOnLaunch: true
@@ -59,7 +59,7 @@ Resources:
   CFnPublicSubnetC:
     Type: AWS::EC2::Subnet
     Properties:
-      AvailabilityZone: ap-northeast-1c
+      AvailabilityZone: !Sub ${AWS::Region}c
       CidrBlock: !Ref PublicSubnetCCIDR
       VpcId: !Ref CFnVPC
       MapPublicIpOnLaunch: true
@@ -70,7 +70,7 @@ Resources:
   CFnPrivateSubnetA:
     Type: AWS::EC2::Subnet
     Properties:
-      AvailabilityZone: ap-northeast-1a
+      AvailabilityZone: !Sub ${AWS::Region}a
       CidrBlock: !Ref PrivateSubnetACIDR
       VpcId: !Ref CFnVPC
       MapPublicIpOnLaunch: false
@@ -81,7 +81,7 @@ Resources:
   CFnPrivateSubnetC:
     Type: AWS::EC2::Subnet
     Properties:
-      AvailabilityZone: ap-northeast-1c
+      AvailabilityZone: !Sub ${AWS::Region}c
       CidrBlock: !Ref PrivateSubnetCCIDR
       VpcId: !Ref CFnVPC
       MapPublicIpOnLaunch: false
