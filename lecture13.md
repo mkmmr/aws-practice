@@ -116,8 +116,6 @@ bundle exec rake assets:precompile
 
 （参考）[Rails Sprockets::Rails::Helper::AssetNotFound の解決に色々頑張った話 - Qiita](https://qiita.com/Akane-Toribe/items/77956c7149acc734dcba)
 
-#### ◆ ALB利用時、blocked host error回避のため、config/environments/development.rbにALBエンドポイントを記載する。
-
 #### ◆ S3接続用のAcceessKeyを、credentials.yml.encではなくEC2のローカルに環境変数として格納する。
 - Ansibleで`EDITOR="vi" bin/rails credentials:edit`しようとすると、どうもvimから抜け出せなくなってansibleが止まるっぽい。
 - credentials.yml.encを残したままrailsからEC2のローカル環境変数を呼び出そうとしても、呼び出せない。（credentials.yml.encが優先される？）
@@ -183,7 +181,7 @@ $ env | grep RAILS_MASTER_KEY
 [Rails 6よりサポートされたMulti Environment Credentialsをプロジェクトに導入する - Zenn](https://zenn.dev/banrih/articles/f22f0a70bbead2a02110)  
 [Rails 6 adds support for multi environment credentials](https://blog.saeloun.com/2019/10/10/rails-6-adds-support-for-multi-environment-credentials.html)
 
-- でもAnsibleで`EDITOR="vi" bin/rails credentials:edit`しようとすると、どうもvimから抜け出せなくなるって止まるようなので、結局諦めてS3へのAccessKeyはEC2のローカルに環境変数として格納することに。
+- でもAnsibleで`EDITOR="vi" bin/rails credentials:edit`しようとすると、どうもvimから抜け出せなくなって止まるようなので、結局諦めてS3へのAccessKeyはEC2のローカルに環境変数として格納することに。
 
 </details>
 
@@ -191,7 +189,7 @@ $ env | grep RAILS_MASTER_KEY
 
 ## 2. CircleCI 実装手順
 ## 2-1. CircleCIとAWSをOIDC連携
-CircleCI用の長期的なAWSアクセスキーは発行せず、OIDC連携してSTSから一時クレデンシャルを発行することで、CircleCIはIAMロールの権限を一時的に引き受けることができる。（Assume Role）
+CircleCI用の長期的なAWSアクセスキーは発行せず、OIDC連携してSTSから一時クレデンシャルを発行することで、CircleCIにIAMロールの権限を一時的に割り当てることができる。（Assume Role）
 
 ### 2-1-1. OIDC連携 手順
 - CircleCIの組織IDとプロジェクトIDを確認する。
@@ -282,11 +280,11 @@ workflows:
 - Assume roleを引き受ける。
 - AWS CLIをインストールする。
 - CloudFormationを実行してAWS上に環境を構築する。
-- AWSから必要な値を取得してCircleCIの環境変数に入れる。[（後述 2-3-3-(a)）](#2-3-3-a-CircleCIでAWSから各種値を取得して、CircleCIの環境変数に設定する。)
-- CircleCIの環境変数をjob内で使用できるようにworkspaceに入れる。[（後述 2-3-3-(b)）](#2-3-3-b-workspaceを使って、1でセットした環境変数をAnsibleでも利用できるようにする。)
+- AWSから必要な値を取得してCircleCIの環境変数に入れる。[（後述 2-3-3-(a)）](#2-3-4-a-circleciでawsから各種値を取得してcircleciの環境変数に設定する)
+- CircleCIの環境変数をjob内で使用できるようにworkspaceに入れる。[（後述 2-3-3-(b)）](#2-3-4-b-workspaceを使って1でセットした環境変数をansibleでも利用できるようにする)
 
 ### 2-2-5. AWS CLIとjqをローカルPCにインストール
-- AWS CLIの挙動を確認するために（特にAWSから値を取得する方法の検証のため）ローカルPCにAWS CLIをインストールする。
+- AWS CLIの挙動を確認するために（特にAWSから値を取得する方法を検証するため）ローカルPCにAWS CLIをインストールする。
 ```
 curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
 sudo installer -pkg AWSCLIV2.pkg -target /
@@ -343,7 +341,7 @@ aws cloudformation deploy --template-file cloudformation/05-IAM.yml --stack-name
 2. workspaceを使って、1.でセットした環境変数をAnsibleでも利用できるようにする。
 3. InventoryにEC2のIPアドレスをセットする。
 4. playbookからCircleCI（コントロールノード）の環境変数を参照して、値をEC2の環境変数に設定する。
-5. config/storage.ymlの環境変数参照先を、config/credentials.yml.encからEC2の環境変数に変更する。
+5. config/storage.ymlの変数参照先を、config/credentials.yml.encからEC2の環境変数に変更する。
 
 
 #### 2-3-4-(a). CircleCIでAWSから各種値を取得して、CircleCIの環境変数に設定する。
@@ -373,7 +371,7 @@ aws cloudformation deploy --template-file cloudformation/05-IAM.yml --stack-name
 [CircleCI 上の BASH_ENV 環境変数について](https://blog.yukii.work/posts/2021-09-18-circleci-and-bash-env/#gsc.tab=0)
 
 #### 2-3-4-(b). workspaceを使って、1.でセットした環境変数をAnsibleでも利用できるようにする。
-- BASH_ENVはstep間までしか共有されないため、job間で環境変数を共有できるworkspace使用する。
+- BASH_ENVはstep間までしか共有されないため、job間で環境変数を共有できるworkspaceを使用する。
 
 （/.circleci/config.yml）
 ```
@@ -416,7 +414,7 @@ aws cloudformation deploy --template-file cloudformation/05-IAM.yml --stack-name
 - Ansibleで`config/credentials.yml.enc`が使えないので（vimから出られなくなってAnsibleが止まる）、EC2の環境変数を利用する。
 - `credentials.yml.enc`、`config/credentials/development.yml.enc`、`config/credentials/production.yml.enc"`が存在しているとEC2の環境変数を読んでくれないので、削除する。
 - `~/.bash_profile`にCircleCIから取得した値を記載する。  
-  （/ansible/roles/02_ruby/tasks/main.ymlで設定したrubyのPATHを通す用のコードが消えないように、ここでも記載する。）
+  （/ansible/roles/02_ruby/tasks/main.ymlで設定したrubyのPATHを通す用のコードが上書きされて消えないように、ここでも記載する。）
 
 - 直後に`source ~/.bash_profile`することで、EC2の環境変数にセットされる。
 
@@ -443,7 +441,7 @@ aws cloudformation deploy --template-file cloudformation/05-IAM.yml --stack-name
 
 （参考）[[Ansible] 環境変数の利用についておさらい - HatenaBlog](https://zaki-hmkc.hatenablog.com/entry/2022/12/19/000930)
 
-#### 2-3-4-(e). config/storage.ymlの環境変数参照先を、config/credentials.yml.encからEC2の環境変数に変更
+#### 2-3-4-(e). config/storage.ymlの変数参照先を、config/credentials.yml.encからEC2の環境変数に変更
 - Ansibleからconfig/storage.ymlの内容を書き換える。
 
 （/ansible/roles/07_S3/tasks/main.yml）
@@ -471,8 +469,8 @@ aws cloudformation deploy --template-file cloudformation/05-IAM.yml --stack-name
 ## 3. Serverspec 実装手順
 
 ## 3-1. CircleCIにServerspecを実装
-### 3-1-1. 
-- CircleCIで`$ serverspec-init`できないので、自分で各種ファイルを用意する。
+### 3-1-1. Serverspecに必要な各種ファイルを用意
+- CircleCI上で`$ serverspec-init`できないので、自分で各種ファイルを用意する。
 ```
 serverspec
 ├── spec
