@@ -23,7 +23,8 @@
 - [2. CircleCIへのTerraform実装手順](#2-CircleCIへのTerraform実装手順)
     - [2-1. 準備](#2-1-準備)
     - [2-2. CircleCIにTerraformを実装](#2-2-CircleCIにTerraformを実装)
-    - [2-3. CircleCIで遭遇したエラー](#2-3-CircleCIで遭遇したエラー)
+    - [2-3. tfstateファイルをS3バケットで管理する](#2-3-tfstateファイルをS3バケットで管理する)
+    - [2-4. CircleCIで遭遇したエラー](#2-4-CircleCIで遭遇したエラー)
 - [3. 成功画面](#3-成功画面)
     - [3-1. CircleCI成功画面](#3-1-CircleCI成功画面)
     - [3-2. アプリの正常動作確認](#3-2-アプリの正常動作確認)
@@ -317,7 +318,56 @@ gpg --no-tty --batch --passphrase "$GPG_PASSPHRASE" --pinentry-mode loopback --o
 
 [\[↑ 目次へ\]](#目次)
 
-## 2-3. CircleCIで遭遇したエラー
+## 2-3. tfstateファイルをS3バケットで管理する
+チーム開発の場合、.tfstateファイルはリモート環境（AWSの場合S3）で管理するのが主流とのことで、ここでも実装してみる。
+
+### 2-3-1. tfstateを管理するS3バケットをCloudFormationで事前に作成する。
+※ Teraformで作成しないのは、その.tfstateをどのように管理すべきかが問題となるため。
+
+- CloudFormation用ymlファイルを新規作成し、S3バケットを作成するコードを書く。
+    - 「パブリックアクセス」をブロックする。
+    - 「バケットのバージョニング」を有効化する。
+    - 「デフォルトの暗号化」を有効化する。
+
+（参考）  
+[tfstateはS3などの共有ストレージに保存する - Terraformのきほんと応用 - Zenn](https://zenn.dev/sway/articles/terraform_staple_sharestate)  
+[tfstateをローカルとS3間で移行してみた | Classmethod](https://dev.classmethod.jp/articles/tfstate-s3-local-migration-method/)  
+[【Terraform】tfstateファイルをAWSのS3・DynamoDBで管理する](https://blog-benri-life.com/terraform-state-aws-s3-dynamodb-backend/)  
+[TerraformのtfstateファイルをS3に配置する](https://open-groove.net/terraform/terraform-tfstate-backend-s3/)
+
+### 2-3-2. provider.tfを編集して、S3バケットで.tfstateファイルを管理するよう設定する。
+- buckendにS3を指定する。
+- ここではチーム開発を想定しているので、あわせてバージョン管理についても追記する。
+
+（terraform/provider.tf）
+```
+terraform {
+    required_providers {
+    aws = {
+        source  = "hashicorp/aws"
+        version = "~> 4.1.0"
+        }
+    }
+
+    backend "s3" {
+        bucket = "terraform-raisetech-s3-for-tfstate"
+        key    = "terraform.tfstate"
+        region = "ap-northeast-1"
+    }
+}
+```
+
+（参考）[Terraformバージョンを固定する - Terraformのきほんと応用 - Zenn](https://zenn.dev/sway/articles/terraform_staple_fixversion)
+
+### 2-3-3. CircleCIでCloudFormation作成について記述する。
+- .circleci/config.ymlを編集して、Terraformより先に、CloudFormationを実行するようにする。
+
+### 2-3-4. 無事.tfstateファイルがS3に保管された。
+![.tfstateファイルがS3に保管されている画面](images/aws_lecture13_Terraform_14tfstateinS3.png)
+
+[\[↑ 目次へ\]](#目次)
+
+## 2-4. CircleCIで遭遇したエラー
 <details>
 <summary><h4>2-3-1. Terraformを実行するdirectoryのエラー</h4></summary>
 working_directoryが使えない
@@ -498,15 +548,17 @@ echo ${GPG_PASSPHRASE} | gpg --passphrase-fd 0 --decrypt --batch --no-secmem-war
 ## 3. 成功画面
 ## 3-1. CircleCI成功画面
 ![CircleCIのWorkflow成功画面](images/aws_lecture13_Terraform_01CircleCIWorkflow.png)
-### 3-1-1. Terraform成功画面
+### 3-1-1. CloudFormation成功画面
+![CircleCIでのCloudFormation成功画面](images/aws_lecture13_Terraform_13CircleCICloudFormation.png)
+### 3-1-2. Terraform成功画面
 ![CircleCIでのTerraform成功画面1](images/aws_lecture13_Terraform_02CircleCITerraform1.png)
 ![CircleCIでのTerraform成功画面2](images/aws_lecture13_Terraform_03CircleCITerraform2.png)
-### 3-1-2. 環境変数セット成功画面
+### 3-1-3. 環境変数セット成功画面
 ![CircleCIでの環境変数セット成功画面](images/aws_lecture13_Terraform_04CircleCISetEnvVars.png)
-### 3-1-3. Ansible成功画面
+### 3-1-4. Ansible成功画面
 ![CircleCIでのAnsible成功画面1](images/aws_lecture13_Terraform_05CircleCIAnsiible1.png)
 ![CircleCIでのAnsible成功画面2](images/aws_lecture13_Terraform_06CircleCIAnsiible2.png)
-### 3-1-4. Serverspec成功画面
+### 3-1-5. Serverspec成功画面
 ![CircleCIでのServerspec成功画面](images/aws_lecture13_Terraform_07CircleCIServerspec.png)
 
 [\[↑ 目次へ\]](#目次)
