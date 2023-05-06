@@ -3,7 +3,7 @@ RaiseTech AWSコースの課題提出用リポジトリです。
 
 ## 内容
 |  ファイル名  |  内容  |
-| :----: | ---- |
+| ---- | ---- |
 |  lecture02.md  |  - Git<br>- Markdown  |
 |  lecture03.md  |  Cloud9を使ったアプリのデプロイ  |
 |  lecture04.md  |  EC2、RDSの構築  |
